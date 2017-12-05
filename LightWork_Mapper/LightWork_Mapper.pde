@@ -101,13 +101,13 @@ int imageIndex = 0;
 int captureTimer = 0; 
 boolean shouldStartDecoding; // Only start decoding once we've decoded a full sequence
 
+Table settingsTable;
+
 void setup()
 {
   size(640, 480, P3D);
   frameRate(FPS);
   warranty();
-  String os=System.getProperty("os.name");
-  println("Operating System: "+os);
   camAspect = (float)camWidth / (float)camHeight;
   println("Cam Aspect: "+camAspect);
 
@@ -168,6 +168,26 @@ void setup()
   images = new ArrayList<PGraphics>();
   diff = createGraphics(camWidth, camHeight, P2D); 
   background(0);
+  
+  
+  // Settings Table
+  settingsTable = new Table();
+  settingsTable.addColumn("name");
+  settingsTable.addColumn("value");
+
+  TableRow newRow = settingsTable.addRow();
+  newRow.setString("name", "AnimationMode");
+  String anim = animator.getMode().toString(); 
+  newRow.setString("value", anim);
+
+  newRow = settingsTable.addRow();
+  newRow.setString("name", "VideoMode");
+  String vid = videoMode.toString();
+  newRow.setString("value", vid);
+  
+  //test table
+  saveTable(settingsTable, "data/settings.csv"); 
+
 }
 
 // -----------------------------------------------------------
@@ -361,6 +381,27 @@ void sequentialMapping() {
   }
 }
 
+public void binaryMapping() {
+  if (videoMode != VideoMode.IMAGE_SEQUENCE) {
+    // Set frameskip so we have enough time to capture an image of each animation frame. 
+    videoMode = VideoMode.IMAGE_SEQUENCE;
+    animator.frameSkip = 18;
+    animator.setMode(AnimationMode.BINARY);
+    //animator.resetPixels();
+    backgroundImage = videoInput.copy();
+    backgroundImage.save("backgroundImage.png");
+    blobLifetime = 200;
+  } else {
+    videoMode = VideoMode.CAMERA;
+    animator.setMode(AnimationMode.OFF);
+    animator.resetPixels();
+    blobList.clear();
+    shouldStartDecoding = false; 
+    images.clear();
+    currentFrame = 0;
+  }
+}
+
 void updateBlobs() {
   // Find all contours
   blobCV.loadImage(opencv.getSnapshot());
@@ -529,89 +570,15 @@ void displayBlobs() {
 //  }
 //}
 
-void saveSVG(ArrayList <PVector> points) {
-  if (points.size() == 0) {
-    //User is trying to save without anything to output - bail
-    println("No point data to save, run mapping first");
-    return;
-  } else {
-    beginRecord(SVG, savePath); 
-    for (PVector p : points) {
-      point(p.x, p.y);
-    }
-    endRecord();
-    println("SVG saved");
-  }
-}
 
-void saveCSV(ArrayList <LED> ledArray, String path) {
-  PrintWriter output;
-  output = createWriter(path); 
-
-  //write vals out to file, start with csv header
-  output.println("address"+","+"x"+","+"y"+","+"z");
-
-  println("CSV saved");
-  for (int i = 0; i < ledArray.size(); i++) {
-    output.println(ledArray.get(i).address+","+ledArray.get(i).coord.x+","+ledArray.get(i).coord.y+","+ledArray.get(i).coord.z);
-    println(ledArray.get(i).address+" "+ledArray.get(i).coord.x+" "+leds.get(i).coord.y);
-  }
-  output.close(); // Finishes the file
-  println("Exported CSV File to "+path);
-}
-
-//Filter duplicates from point array
-//ArrayList <PVector> removeDuplicates(ArrayList <PVector> points) {
-//  println( "Removing duplicates");
-
-//  float thresh = 3.0; 
-
-//  // Iterate through all the points and remove duplicates and 'extra' points (under threshold distance).
-//  for (PVector p : points) {
-//    float i = points.get(1).dist(p); // distance to current point, used to avoid comporating a point to itself
-//    //PVector pt = p;
-
-//    // Do not remove 0,0 points (they're 'invisible' LEDs, we need to keep them).
-//    if (p.x == 0 && p.y == 0) {
-//      continue; // Go to the next iteration
-//    }
-
-//    // Compare point to all other points
-//    for (Iterator iter = points.iterator(); iter.hasNext();) {
-//      PVector item = (PVector)iter.next();
-//      float j = points.get(1).dist(item); 
-//      //PVector pt2 = item;
-//      float dist = p.dist(item);
-
-//      // Comparing point to itself... do nothing and move on.
-//      if (i == j) {
-//        //ofLogVerbose("tracking") << "COMPARING POINT TO ITSELF " << pt << endl;
-//        continue; // Move on to the next j point
-//      }
-//      // Duplicate point detection. (This might be covered by the distance check below and therefor redundant...)
-//      //else if (pt.x == pt2.x && pt.y == pt2.y) {
-//      //  //ofLogVerbose("tracking") << "FOUND DUPLICATE POINT (that is not 0,0) - removing..." << endl;
-//      //  iter = points.remove(iter);
-//      //  break;
-//      //}
-//      // Check point distance, remove points that are too close
-//      else if (dist < thresh) {
-//        println("removing duplicate point");
-//        points.remove(iter);
-//        break;
-//      }
-//    }
-//  }
-
-//  return points;
-//}
-
-//Console warranty info
+//Console warranty info and Operating System
 void warranty() {
   println("Lightwork-Mapper"); 
   println("Copyright (C) 2017  Leó Stefánsson and Tim Rolls @PWRFL");
   println("This program comes with ABSOLUTELY NO WARRANTY");
   println("");
+  String os=System.getProperty("os.name");  
+  println("Operating System: "+os);
 }
 
 //Closes connections (once deployed as applet)

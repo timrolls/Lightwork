@@ -568,24 +568,34 @@ void window3d() {
   println("camArea.x: "+ camArea.x +" camArea.y: "+ camArea.y +" camArea.width: "+ camArea.width +" camArea.height: "+ camArea.height);
 }
 
-// 
-public void binaryMapping() {
-  if (videoMode != VideoMode.IMAGE_SEQUENCE) {
-    // Set frameskip so we have enough time to capture an image of each animation frame. 
-    videoMode = VideoMode.IMAGE_SEQUENCE;
-    animator.frameSkip = 18;
-    animator.setMode(AnimationMode.BINARY);
-    //animator.resetPixels();
-    backgroundImage = videoInput.copy();
-    backgroundImage.save("backgroundImage.png");
-    blobLifetime = 200;
+
+void saveSVG(ArrayList <PVector> points) {
+  if (points.size() == 0) {
+    //User is trying to save without anything to output - bail
+    println("No point data to save, run mapping first");
+    return;
   } else {
-    videoMode = VideoMode.CAMERA;
-    animator.setMode(AnimationMode.OFF);
-    animator.resetPixels();
-    blobList.clear();
-    shouldStartDecoding = false; 
-    images.clear();
-    currentFrame = 0;
+    beginRecord(SVG, savePath); 
+    for (PVector p : points) {
+      point(p.x, p.y);
+    }
+    endRecord();
+    println("SVG saved");
   }
+}
+
+void saveCSV(ArrayList <LED> ledArray, String path) {
+  PrintWriter output;
+  output = createWriter(path); 
+
+  //write vals out to file, start with csv header
+  output.println("address"+","+"x"+","+"y"+","+"z");
+
+  println("CSV saved");
+  for (int i = 0; i < ledArray.size(); i++) {
+    output.println(ledArray.get(i).address+","+ledArray.get(i).coord.x+","+ledArray.get(i).coord.y+","+ledArray.get(i).coord.z);
+    println(ledArray.get(i).address+" "+ledArray.get(i).coord.x+" "+leds.get(i).coord.y);
+  }
+  output.close(); // Finishes the file
+  println("Exported CSV File to "+path);
 }
